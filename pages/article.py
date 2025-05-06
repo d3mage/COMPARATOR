@@ -13,7 +13,7 @@ def calculate_payment(pages):
         return pages * 70
     elif 7 <= pages <= 10:
         return pages * 100
-    elif pages <= 11
+    elif pages <= 11:
         return pages * 120
 
 
