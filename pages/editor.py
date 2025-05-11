@@ -6,7 +6,6 @@ from utils.utils import count_words, extract_comments, extract_text
 from utils.xml_extract import extract_xml
 
 
-# TODO: Не враховуємо в відсотку редагування форматування.
 # TODO: Рахувати самостійно кількість сторінок.
 
 st.title("Оплата редагування")
@@ -34,8 +33,15 @@ try:
     word_count = count_words(text)
     deleted_words_count = count_words(deleted_text)
     inserted_words_count = count_words(inserted_text)
+    substitutions = min(deleted_words_count, inserted_words_count)
+
+    adjusted_deleted = deleted_words_count - substitutions
+    adjusted_inserted = inserted_words_count - substitutions
+
     redacted_percentage = (
-        (inserted_words_count + deleted_words_count) / word_count * 100
+        (adjusted_inserted + adjusted_deleted + 0.25 * change_counts["Formatting Changes"])
+        / word_count
+        * 100
     )
 
     st.subheader("Change Counts")
