@@ -1,7 +1,10 @@
+import nltk
+from lxml import etree
+
 import streamlit as st
 import pandas as pd
 
-from utils.utils import count_words, extract_comments, extract_text
+from utils.utils import extract_edits, extract_formatting
 from utils.xml_extract import extract_xml
 
 
@@ -26,46 +29,37 @@ uploaded_file = st.file_uploader("Upload a DOCX file", type="docx")
 
 try:
     xml_content = extract_xml(uploaded_file)
+    xml_bytes = xml_content.encode('utf-8')
+    xml_root = etree.fromstring(xml_bytes)
 
-    change_counts, deleted_text, inserted_text = extract_comments(xml_content)
+    edit_entries, unedited_entries = extract_edits(xml_root)
 
-    change_counts = {
-        "Formatting Changes": change_counts["w:rPrChange"],
-        "Removals": change_counts["w:del"],
-        "Insertions": change_counts["w:ins"],
-    }
+    original_word_count = 0
+    for entry in unedited_entries:
+        original_word_count += len(entry)
+    for entry in edit_entries.values():
+        original_word_count += len(entry["del"])
 
-    text = extract_text(xml_content)
+    edit_distance = 0
+    for entry in edit_entries.values():
+        # We want Levenstein distance on words, not letters
+        edit_distance += nltk.edit_distance(entry["ins"], entry["del"])
 
-    word_count = count_words(text)
-    deleted_words_count = count_words(deleted_text)
-    inserted_words_count = count_words(inserted_text)
-    substitutions = min(deleted_words_count, inserted_words_count)
+    formatting_changes = extract_formatting(xml_content)  # Maybe redo to use lxml
+    redacted_percentage = (edit_distance + 0.25*formatting_changes) / original_word_count * 100
 
-    adjusted_deleted = deleted_words_count - substitutions
-    adjusted_inserted = inserted_words_count - substitutions
-
-    redacted_percentage = (
-        (adjusted_inserted + adjusted_deleted + 0.25 * change_counts["Formatting Changes"])
-        / word_count
-        * 100
-    )
-
-    st.subheader("Change Counts")
-    st.table(change_counts)
-
-    st.subheader("Word Statistics")
-    word_stats_df = pd.DataFrame(
+    st.subheader("Statistics")
+    stats_df = pd.DataFrame(
         {
-            "Metric": ["Total Words", "Deleted Words", "Inserted Words"],
+            "Metric": ["Total Words", "Edit Distance (additions + deletions + substitutions)", "Formatting Changes"],
             "Count": [
-                int(word_count),
-                int(deleted_words_count),
-                int(inserted_words_count),
+                original_word_count,
+                edit_distance,
+                formatting_changes,
             ],
         }
     )
-    st.dataframe(word_stats_df, hide_index=True)
+    st.dataframe(stats_df, hide_index=True)
     st.write(f"Redacted Percentage: {redacted_percentage:.2f}%")
 
     base_pay = pages * base_per_page

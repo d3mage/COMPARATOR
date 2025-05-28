@@ -1,5 +1,7 @@
 import re
 
+from lxml import etree
+
 
 def extract_comments(xml_content):
     rPrChange_count = extract_formatting(xml_content)
@@ -52,3 +54,55 @@ def extract_text(xml_content):
 
 def count_words(text):
     return len([word for word in re.split(r"\s+", text) if word.strip()])
+
+
+def processed_tag(node: etree.Element) -> str:
+    tag = re.match(r"({.*})(\w*)", node.tag).group(2)
+    return "del" if tag == "delText" else "ins"
+
+
+def processed_w_id(node: etree.Element) -> str:
+    w_id_key = f"{{{node.nsmap["w"]}}}id"  # w:id
+    w_id = None
+    parent = node
+    while parent is not None:
+        if w_id := parent.attrib.get(w_id_key):
+            break
+        parent = parent.getparent()
+    return w_id
+
+
+def extract_edits(xml_root: etree.Element) -> tuple[dict[str, dict[str, list]], list[list[str]]]:
+    """
+    Extracts edits from xml document of Google Docs document
+
+    :param xml_root: lxml etree root of whole xml document
+    :return: dict of edits and list of text entries left as in original.
+    Dict of edits format:
+    {
+        "id": {
+            "ins": ["Words", "after", "edit", "split", "by", "whitespaces"]
+            "del": ["Words", "before", "edit", "split", "by", "whitespaces"]
+        },
+        ...
+    }
+    List of unedited entries:
+    [
+        ["Words", "split", "by", "whitespaces"],
+        ...
+    ]
+    """
+    text_nodes = xml_root.xpath('//*[@xml:space="preserve"]')
+
+    edit_entries = {}
+    unedited_entries = []
+    for node in text_nodes:
+        tag = processed_tag(node)
+        w_id = processed_w_id(node)
+
+        if w_id:
+            edit_entries.setdefault(w_id, {"ins": [], "del": []})[tag] = node.text.split()
+        else:
+            unedited_entries.append({tag: node.text.split()})
+
+    return edit_entries, unedited_entries
