@@ -1,8 +1,7 @@
 import streamlit as st
 import math
 
-from utils.utils import calculate_edit_stats
-
+from utils.utils import total_edit_stats
 
 # TODO: Рахувати самостійно кількість сторінок.
 
@@ -16,7 +15,7 @@ pages = st.number_input("Кількість сторінок", min_value=1, valu
 uploaded_file = st.file_uploader("Upload a DOCX file", type="docx")
 
 try:
-    stats_df = calculate_edit_stats(uploaded_file)
+    stats_df = total_edit_stats(uploaded_file)
     stats = stats_df.set_index("Metric")["Value"]
     redacted_percentage = ((stats.at["Edit Distance"] + 0.25*stats.at["Formatting Changes"])
                            / stats.at["Total Words"] * 100)

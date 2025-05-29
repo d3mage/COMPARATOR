@@ -108,23 +108,23 @@ def extract_edits(xml_root: etree.Element) -> tuple[dict[str, dict[str, list]], 
         if w_id:
             edit_entries.setdefault(w_id, {"ins": [], "del": []})[tag] = node.text.split()
         else:
-            unedited_entries.append({tag: node.text.split()})
+            unedited_entries.append(node.text.split())
 
     return edit_entries, unedited_entries
 
 
-def calculate_edit_stats(uploaded_file: UploadedFile) -> pd.DataFrame:
-    xml_content = extract_xml(uploaded_file)
+def calculate_edit_stats(uploaded_file: UploadedFile, file_name: str) -> dict[str, int]:
+    xml_content = extract_xml(uploaded_file, file_name)
     xml_bytes = xml_content.encode('utf-8')
     xml_root = etree.fromstring(xml_bytes)
 
     edit_entries, unedited_entries = extract_edits(xml_root)
 
-    original_word_count = 0
+    total_words = 0
     for entry in unedited_entries:
-        original_word_count += len(entry)
+        total_words += len(entry)
     for entry in edit_entries.values():
-        original_word_count += len(entry["del"])
+        total_words += len(entry["del"])
 
     edit_distance = 0
     for entry in edit_entries.values():
@@ -133,11 +133,16 @@ def calculate_edit_stats(uploaded_file: UploadedFile) -> pd.DataFrame:
 
     formatting_changes = extract_formatting(xml_content)  # Maybe redo to use lxml
 
-    stats_df = pd.DataFrame(
-        {
-            "Metric": ["Total Words", "Edit Distance", "Formatting Changes"],
-            "Value": [original_word_count, edit_distance, formatting_changes],
-        }
-    )
+    return {"Total Words": total_words, "Edit Distance": edit_distance, "Formatting Changes": formatting_changes}
 
+
+def total_edit_stats(uploaded_file: UploadedFile) -> pd.DataFrame:
+    document_stats = calculate_edit_stats(uploaded_file, file_name="document.xml")
+    footnote_stats = calculate_edit_stats(uploaded_file, file_name="footnotes.xml")
+    total_stats = {}
+
+    for key in document_stats:
+        total_stats[key] = document_stats[key] + footnote_stats[key]
+
+    stats_df = pd.DataFrame({"Metric": list(total_stats.keys()), "Value": list(total_stats.values())})
     return stats_df
