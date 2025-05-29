@@ -7,14 +7,15 @@ pages = st.number_input("Кількість сторінок", min_value=1, valu
 
 # Розрахунок оплати
 def calculate_payment(pages):
+    base = 250
     if pages <= 3:
-        return 250
-    elif 4 <= pages <= 6:
-        return pages * 70
-    elif 7 <= pages <= 10:
-        return pages * 100
+        return base
+    elif pages <= 6:
+        return base + (pages - 3) * 70
+    elif pages <= 10:
+        return base + 3 * 70 + (pages - 6) * 100
     else:
-        return pages * 120
+        return base + 3 * 70 + 4 * 100 + (pages - 10) * 120
 
 
 # Відображення результату
