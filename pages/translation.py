@@ -1,9 +1,6 @@
 import streamlit as st
-import pandas as pd
 
-from utils.utils import count_words, extract_comments, extract_text
-from utils.xml_extract import extract_xml
-
+from utils.utils import total_edit_stats
 
 # TODO: Рахувати самостійно кількість сторінок.
 
@@ -25,47 +22,13 @@ pages = st.number_input("Кількість сторінок", min_value=1, valu
 uploaded_file = st.file_uploader("Upload a DOCX file", type="docx")
 
 try:
-    xml_content = extract_xml(uploaded_file)
+    stats_df = total_edit_stats(uploaded_file)
+    stats = stats_df.set_index("Metric")["Value"]
+    redacted_percentage = ((stats.at["Edit Distance"] + 0.25*stats.at["Formatting Changes"])
+                           / stats.at["Total Words"] * 100)
 
-    change_counts, deleted_text, inserted_text = extract_comments(xml_content)
-
-    change_counts = {
-        "Formatting Changes": change_counts["w:rPrChange"],
-        "Removals": change_counts["w:del"],
-        "Insertions": change_counts["w:ins"],
-    }
-
-    text = extract_text(xml_content)
-
-    word_count = count_words(text)
-    deleted_words_count = count_words(deleted_text)
-    inserted_words_count = count_words(inserted_text)
-    substitutions = min(deleted_words_count, inserted_words_count)
-
-    adjusted_deleted = deleted_words_count - substitutions
-    adjusted_inserted = inserted_words_count - substitutions
-
-    redacted_percentage = (
-        (adjusted_inserted + adjusted_deleted + 0.25 * change_counts["Formatting Changes"])
-        / word_count
-        * 100
-    )
-
-    st.subheader("Change Counts")
-    st.table(change_counts)
-
-    st.subheader("Word Statistics")
-    word_stats_df = pd.DataFrame(
-        {
-            "Metric": ["Total Words", "Deleted Words", "Inserted Words"],
-            "Count": [
-                int(word_count),
-                int(deleted_words_count),
-                int(inserted_words_count),
-            ],
-        }
-    )
-    st.dataframe(word_stats_df, hide_index=True)
+    st.subheader("Statistics")
+    st.dataframe(stats_df, hide_index=True)
     st.write(f"Redacted Percentage: {redacted_percentage:.2f}%")
 
     base_pay = pages * base_per_page

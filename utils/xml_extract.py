@@ -1,10 +1,15 @@
+import shutil
 import zipfile
 import os
 
-def extract_xml(uploaded_file):
+
+def extract_xml(uploaded_file, file_name):
     extract_to = "extracted_docx"
+    if os.path.exists(extract_to):
+        shutil.rmtree(extract_to)
+    os.makedirs(extract_to)
     extract_docx(uploaded_file, extract_to)
-    xml_content = read_document_xml(extract_to)
+    xml_content = read_document_xml(extract_to, file_name)
     return xml_content
 
 
@@ -13,7 +18,7 @@ def extract_docx(docx_path, extract_to):
         zip_ref.extractall(extract_to)
 
 
-def read_document_xml(extract_dir):
-    xml_path = os.path.join(extract_dir, "word", "document.xml")
+def read_document_xml(extract_dir, file_name):
+    xml_path = os.path.join(extract_dir, "word", file_name)
     with open(xml_path, "r", encoding="utf-8") as f:
         return f.read()
