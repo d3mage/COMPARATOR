@@ -1,11 +1,6 @@
-import nltk
-from lxml import etree
-
 import streamlit as st
-import pandas as pd
 
-from utils.utils import extract_edits, extract_formatting
-from utils.xml_extract import extract_xml
+from utils.utils import calculate_edit_stats
 
 
 # TODO: Рахувати самостійно кількість сторінок.
@@ -28,37 +23,12 @@ pages = st.number_input("Кількість сторінок", min_value=1, valu
 uploaded_file = st.file_uploader("Upload a DOCX file", type="docx")
 
 try:
-    xml_content = extract_xml(uploaded_file)
-    xml_bytes = xml_content.encode('utf-8')
-    xml_root = etree.fromstring(xml_bytes)
-
-    edit_entries, unedited_entries = extract_edits(xml_root)
-
-    original_word_count = 0
-    for entry in unedited_entries:
-        original_word_count += len(entry)
-    for entry in edit_entries.values():
-        original_word_count += len(entry["del"])
-
-    edit_distance = 0
-    for entry in edit_entries.values():
-        # We want Levenstein distance on words, not letters
-        edit_distance += nltk.edit_distance(entry["ins"], entry["del"])
-
-    formatting_changes = extract_formatting(xml_content)  # Maybe redo to use lxml
-    redacted_percentage = (edit_distance + 0.25*formatting_changes) / original_word_count * 100
+    stats_df = calculate_edit_stats(uploaded_file)
+    stats = stats_df.set_index("Metric")["Value"]
+    redacted_percentage = ((stats.at["Edit Distance"] + 0.25*stats.at["Formatting Changes"])
+                           / stats.at["Total Words"] * 100)
 
     st.subheader("Statistics")
-    stats_df = pd.DataFrame(
-        {
-            "Metric": ["Total Words", "Edit Distance (additions + deletions + substitutions)", "Formatting Changes"],
-            "Count": [
-                original_word_count,
-                edit_distance,
-                formatting_changes,
-            ],
-        }
-    )
     st.dataframe(stats_df, hide_index=True)
     st.write(f"Redacted Percentage: {redacted_percentage:.2f}%")
 

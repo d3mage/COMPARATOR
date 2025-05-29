@@ -1,6 +1,11 @@
 import re
 
+import nltk
+import pandas as pd
 from lxml import etree
+from streamlit.runtime.uploaded_file_manager import UploadedFile
+
+from utils.xml_extract import extract_xml
 
 
 def extract_comments(xml_content):
@@ -106,3 +111,33 @@ def extract_edits(xml_root: etree.Element) -> tuple[dict[str, dict[str, list]], 
             unedited_entries.append({tag: node.text.split()})
 
     return edit_entries, unedited_entries
+
+
+def calculate_edit_stats(uploaded_file: UploadedFile) -> pd.DataFrame:
+    xml_content = extract_xml(uploaded_file)
+    xml_bytes = xml_content.encode('utf-8')
+    xml_root = etree.fromstring(xml_bytes)
+
+    edit_entries, unedited_entries = extract_edits(xml_root)
+
+    original_word_count = 0
+    for entry in unedited_entries:
+        original_word_count += len(entry)
+    for entry in edit_entries.values():
+        original_word_count += len(entry["del"])
+
+    edit_distance = 0
+    for entry in edit_entries.values():
+        # We want Levenstein distance on words, not letters
+        edit_distance += nltk.edit_distance(entry["ins"], entry["del"])
+
+    formatting_changes = extract_formatting(xml_content)  # Maybe redo to use lxml
+
+    stats_df = pd.DataFrame(
+        {
+            "Metric": ["Total Words", "Edit Distance", "Formatting Changes"],
+            "Value": [original_word_count, edit_distance, formatting_changes],
+        }
+    )
+
+    return stats_df
