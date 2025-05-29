@@ -22,8 +22,8 @@ def calculate_editor_payment(pages: int, redacted_percentage: float) -> pd.DataF
 
     return pd.DataFrame(
         {
-            "Metric": ["Base Pay", "Redact Pay", "Result"],
-            "Value": [base_pay, redact_pay, result],
+            "Показник": ["Базова оплата", "Оплата за редагування", "Результат"],
+            "Значення": [base_pay, redact_pay, result],
         }
     )
 
@@ -54,8 +54,8 @@ def calculate_translation_payment(
 
     return pd.DataFrame(
         {
-            "Metric": ["Base Pay", "Penalty", "Result"],
-            "Value": [base_pay, penalty, result],
+            "Показник": ["Базова оплата", "Штраф", "Результат"],
+            "Значення": [base_pay, penalty, result],
         }
     )
 

@@ -11,22 +11,22 @@ st.title("Оплата перекладу")
 
 pages = st.number_input("Кількість сторінок", min_value=1, value=1, step=1)
 
-uploaded_file = st.file_uploader("Upload a DOCX file", type="docx")
+uploaded_file = st.file_uploader("Завантажте файл DOCX", type="docx")
 
 if uploaded_file is None:
-    st.warning("Please upload a DOCX file to analyze")
+    st.warning("Будь ласка, завантажте файл DOCX для аналізу")
 else:
     stats_df = total_edit_stats(uploaded_file)
-    stats = stats_df.set_index("Metric")["Value"]
+    stats = stats_df.set_index("Показник")["Значення"]
     redacted_percentage = calculate_redacted_percentage(
-        stats.at["Edit Distance"],
-        stats.at["Formatting Changes"],
-        stats.at["Total Words"],
+        stats.at["Змінено слів"],
+        stats.at["Змінено форматування"],
+        stats.at["Загальна кількість слів"],
     )
 
-    st.subheader("Statistics")
+    st.subheader("Статистика")
     st.dataframe(stats_df, hide_index=True)
-    st.write(f"Redacted Percentage: {redacted_percentage:.2f}%")
+    st.write(f"Відсоток редагування: {redacted_percentage:.2f}%")
 
     rank = st.radio(
         "Виберіть звання:",

@@ -148,5 +148,13 @@ def total_edit_stats(uploaded_file: UploadedFile) -> pd.DataFrame:
     for key in document_stats:
         total_stats[key] = document_stats[key] + footnote_stats[key]
 
-    stats_df = pd.DataFrame({"Metric": list(total_stats.keys()), "Value": list(total_stats.values())})
+    # Translate metric names to Ukrainian
+    ukrainian_metrics = {
+        "Total Words": "Загальна кількість слів",
+        "Edit Distance": "Змінено слів", 
+        "Formatting Changes": "Змінено форматування"
+    }
+    
+    translated_keys = [ukrainian_metrics[key] for key in total_stats.keys()]
+    stats_df = pd.DataFrame({"Показник": translated_keys, "Значення": list(total_stats.values())})
     return stats_df
