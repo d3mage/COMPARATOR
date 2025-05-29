@@ -7,15 +7,15 @@ from utils.calculate import (
     calculate_redacted_percentage,
 )
 
-# TODO: Рахувати самостійно кількість сторінок.
-
 st.title("Оплата перекладу")
 
 pages = st.number_input("Кількість сторінок", min_value=1, value=1, step=1)
 
 uploaded_file = st.file_uploader("Upload a DOCX file", type="docx")
 
-try:
+if uploaded_file is None:
+    st.warning("Please upload a DOCX file to analyze")
+else:
     stats_df = total_edit_stats(uploaded_file)
     stats = stats_df.set_index("Metric")["Value"]
     redacted_percentage = calculate_redacted_percentage(
@@ -40,6 +40,3 @@ try:
 
     payment_df = calculate_editor_payment(pages, redacted_percentage)
     st.dataframe(payment_df, hide_index=True)
-
-except Exception as e:
-    st.warning("Please upload a DOCX file to analyze")
