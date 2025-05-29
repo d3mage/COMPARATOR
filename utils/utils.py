@@ -1,3 +1,4 @@
+import os
 import re
 
 import nltk
@@ -138,9 +139,12 @@ def calculate_edit_stats(uploaded_file: UploadedFile, file_name: str) -> dict[st
 
 def total_edit_stats(uploaded_file: UploadedFile) -> pd.DataFrame:
     document_stats = calculate_edit_stats(uploaded_file, file_name="document.xml")
-    footnote_stats = calculate_edit_stats(uploaded_file, file_name="footnotes.xml")
-    total_stats = {}
+    if os.path.isfile("footnotes.xml"):
+        footnote_stats = calculate_edit_stats(uploaded_file, file_name="footnotes.xml")
+    else:
+        footnote_stats = {"Total Words": 0, "Edit Distance": 0, "Formatting Changes": 0}
 
+    total_stats = {}
     for key in document_stats:
         total_stats[key] = document_stats[key] + footnote_stats[key]
 

@@ -1,9 +1,13 @@
+import shutil
 import zipfile
 import os
 
 
 def extract_xml(uploaded_file, file_name):
     extract_to = "extracted_docx"
+    if os.path.exists(extract_to):
+        shutil.rmtree(extract_to)
+    os.makedirs(extract_to)
     extract_docx(uploaded_file, extract_to)
     xml_content = read_document_xml(extract_to, file_name)
     return xml_content
