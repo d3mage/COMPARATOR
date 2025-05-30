@@ -1,4 +1,3 @@
-import os
 import re
 
 import nltk
@@ -115,7 +114,11 @@ def extract_edits(xml_root: etree.Element) -> tuple[dict[str, dict[str, list]], 
 
 
 def calculate_edit_stats(uploaded_file: UploadedFile, file_name: str) -> dict[str, int]:
-    xml_content = extract_xml(uploaded_file, file_name)
+    try:
+        xml_content = extract_xml(uploaded_file, file_name)
+    except FileNotFoundError:
+        return {"Total Words": 0, "Edit Distance": 0, "Formatting Changes": 0}
+
     xml_bytes = xml_content.encode('utf-8')
     xml_root = etree.fromstring(xml_bytes)
 
@@ -139,10 +142,7 @@ def calculate_edit_stats(uploaded_file: UploadedFile, file_name: str) -> dict[st
 
 def total_edit_stats(uploaded_file: UploadedFile) -> pd.DataFrame:
     document_stats = calculate_edit_stats(uploaded_file, file_name="document.xml")
-    if os.path.isfile("footnotes.xml"):
-        footnote_stats = calculate_edit_stats(uploaded_file, file_name="footnotes.xml")
-    else:
-        footnote_stats = {"Total Words": 0, "Edit Distance": 0, "Formatting Changes": 0}
+    footnote_stats = calculate_edit_stats(uploaded_file, file_name="footnotes.xml")
 
     total_stats = {}
     for key in document_stats:
