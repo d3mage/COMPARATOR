@@ -60,6 +60,27 @@ def calculate_translation_payment(total_characters: int, rank: int) -> pd.DataFr
     )
 
 
+def calculate_translation_penalty_percentage(redacted_percentage: float) -> float:
+    """
+    Calculate translation penalty percentage based on edit percentage.
+
+    Penalty scale:
+    - first 5% edits: 0%
+    - 5% to 15%: 1% penalty for each 1% edits
+    - 15% to 50%: 1.8571% penalty for each 1% edits
+    - 50%+: capped at 75%
+    """
+    if redacted_percentage <= 5:
+        return 0.0
+
+    penalty = min(redacted_percentage, 15) - 5
+
+    if redacted_percentage > 15:
+        penalty += (min(redacted_percentage, 50) - 15) * 1.8571
+
+    return min(round(penalty, 4), 75.0)
+
+
 def calculate_redacted_percentage(
     edit_distance: float, formatting_changes: float, total_words: float
 ) -> float:
