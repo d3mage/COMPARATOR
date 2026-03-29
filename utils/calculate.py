@@ -1,63 +1,61 @@
 import math
+
 import pandas as pd
 
 
-def calculate_editor_payment(pages: int, redacted_percentage: float) -> pd.DataFrame:
+def calculate_editor_payment(
+    total_characters: int, redacted_percentage: float
+) -> pd.DataFrame:
     """
     Calculate payment for editing work.
 
     Args:
-        pages: Number of pages
+        total_characters: Number of characters including spaces
         redacted_percentage: Percentage of content that was redacted/edited
 
     Returns:
         DataFrame with payment breakdown
     """
-    BASE = 200
-    PER_PAGE = 20
+    RATE_PER_1000 = 20
 
-    base_pay = BASE + pages * PER_PAGE
-    redact_pay = math.ceil(redacted_percentage) * 20
-    result = base_pay + redact_pay
+    if redacted_percentage < 10:
+        coefficient = 1.0
+    elif redacted_percentage < 20:
+        coefficient = 1.2
+    elif redacted_percentage < 30:
+        coefficient = 1.4
+    else:
+        coefficient = 1.6
+
+    base_pay = math.ceil(total_characters / 1000) * RATE_PER_1000
+    result = round(base_pay * coefficient, 2)
 
     return pd.DataFrame(
         {
-            "Показник": ["Базова оплата", "Оплата за редагування", "Результат"],
-            "Значення": [base_pay, redact_pay, result],
+            "Показник": ["Базова оплата", "Коефіцієнт", "Результат"],
+            "Значення": [base_pay, coefficient, result],
         }
     )
 
 
-def calculate_translation_payment(
-    pages: int, redacted_percentage: float, rank: int
-) -> pd.DataFrame:
+def calculate_translation_payment(total_characters: int, rank: int) -> pd.DataFrame:
     """
     Calculate payment for translation work.
 
     Args:
-        pages: Number of pages
-        redacted_percentage: Percentage of content that was redacted/edited
-        rank: 0 for "Старшина" (120 per page), 1 for "Рядовий" (100 per page)
+        total_characters: Number of characters including spaces
+        rank: 0 for "Старшина", 1 for standard translation rate
 
     Returns:
         DataFrame with payment breakdown
     """
-    THRESHOLD = 8
-
-    base_per_page = 120 if rank == 0 else 100
-
-    base_pay = pages * base_per_page
-    penalty = (
-        0
-        if redacted_percentage <= THRESHOLD
-        else (redacted_percentage - THRESHOLD) * pages * 2
-    )
-    result = base_pay - penalty
+    RATE_PER_1000 = 65 if rank == 0 else 50
+    result = math.ceil(total_characters / 1000) * RATE_PER_1000
 
     return pd.DataFrame(
         {
-            "Показник": ["Базова оплата", "Штраф", "Результат"],
-            "Значення": [base_pay, penalty, result],
+            "Показник": ["Тариф за 1000 символів", "Кількість символів", "Результат"],
+            "Значення": [RATE_PER_1000, total_characters, result],
         }
     )
 

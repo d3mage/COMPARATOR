@@ -67,7 +67,7 @@ def processed_tag(node: etree.Element) -> str:
 
 
 def processed_w_id(node: etree.Element) -> str:
-    w_id_key = f"{{{node.nsmap["w"]}}}id"  # w:id
+    w_id_key = f"{{{node.nsmap['w']}}}id"  # w:id
     w_id = None
     parent = node
     while parent is not None:
@@ -77,7 +77,9 @@ def processed_w_id(node: etree.Element) -> str:
     return w_id
 
 
-def extract_edits(xml_root: etree.Element) -> tuple[dict[str, dict[str, list]], list[list[str]]]:
+def extract_edits(
+    xml_root: etree.Element,
+) -> tuple[dict[str, dict[str, list]], list[list[str]]]:
     """
     Extracts edits from xml document of Google Docs document
 
@@ -106,7 +108,9 @@ def extract_edits(xml_root: etree.Element) -> tuple[dict[str, dict[str, list]], 
         w_id = processed_w_id(node)
 
         if w_id:
-            edit_entries.setdefault(w_id, {"ins": [], "del": []})[tag] = node.text.split()
+            edit_entries.setdefault(w_id, {"ins": [], "del": []})[tag] = (
+                node.text.split()
+            )
         else:
             unedited_entries.append(node.text.split())
 
@@ -117,9 +121,14 @@ def calculate_edit_stats(uploaded_file: UploadedFile, file_name: str) -> dict[st
     try:
         xml_content = extract_xml(uploaded_file, file_name)
     except FileNotFoundError:
-        return {"Total Words": 0, "Edit Distance": 0, "Formatting Changes": 0}
+        return {
+            "Total Words": 0,
+            "Total Characters": 0,
+            "Edit Distance": 0,
+            "Formatting Changes": 0,
+        }
 
-    xml_bytes = xml_content.encode('utf-8')
+    xml_bytes = xml_content.encode("utf-8")
     xml_root = etree.fromstring(xml_bytes)
 
     edit_entries, unedited_entries = extract_edits(xml_root)
@@ -130,6 +139,8 @@ def calculate_edit_stats(uploaded_file: UploadedFile, file_name: str) -> dict[st
     for entry in edit_entries.values():
         total_words += len(entry["del"])
 
+    total_characters = len(extract_text(xml_content))
+
     edit_distance = 0
     for entry in edit_entries.values():
         # We want Levenstein distance on words, not letters
@@ -137,7 +148,12 @@ def calculate_edit_stats(uploaded_file: UploadedFile, file_name: str) -> dict[st
 
     formatting_changes = extract_formatting(xml_content)  # Maybe redo to use lxml
 
-    return {"Total Words": total_words, "Edit Distance": edit_distance, "Formatting Changes": formatting_changes}
+    return {
+        "Total Words": total_words,
+        "Total Characters": total_characters,
+        "Edit Distance": edit_distance,
+        "Formatting Changes": formatting_changes,
+    }
 
 
 def total_edit_stats(uploaded_file: UploadedFile) -> pd.DataFrame:
@@ -151,10 +167,13 @@ def total_edit_stats(uploaded_file: UploadedFile) -> pd.DataFrame:
     # Translate metric names to Ukrainian
     ukrainian_metrics = {
         "Total Words": "Загальна кількість слів",
-        "Edit Distance": "Змінено слів", 
-        "Formatting Changes": "Змінено форматування"
+        "Total Characters": "Загальна кількість символів з пробілами",
+        "Edit Distance": "Змінено слів",
+        "Formatting Changes": "Змінено форматування",
     }
-    
+
     translated_keys = [ukrainian_metrics[key] for key in total_stats.keys()]
-    stats_df = pd.DataFrame({"Показник": translated_keys, "Значення": list(total_stats.values())})
+    stats_df = pd.DataFrame(
+        {"Показник": translated_keys, "Значення": list(total_stats.values())}
+    )
     return stats_df

@@ -1,15 +1,13 @@
 import streamlit as st
 
-from utils.utils import total_edit_stats
 from utils.calculate import (
     calculate_editor_payment,
-    calculate_translation_payment,
     calculate_redacted_percentage,
+    calculate_translation_payment,
 )
+from utils.utils import total_edit_stats
 
 st.title("Оплата перекладу")
-
-pages = st.number_input("Кількість сторінок", min_value=1, value=1, step=1)
 
 uploaded_file = st.file_uploader("Завантажте файл DOCX", type="docx")
 
@@ -23,20 +21,22 @@ else:
         stats.at["Змінено форматування"],
         stats.at["Загальна кількість слів"],
     )
+    total_characters = stats.at["Загальна кількість символів з пробілами"]
 
     st.subheader("Статистика")
     st.dataframe(stats_df, hide_index=True)
     st.write(f"Відсоток редагування: {redacted_percentage:.2f}%")
+    st.write(f"Кількість символів з пробілами: {int(total_characters)}")
 
     rank = st.radio(
         "Виберіть звання:",
         options=[0, 1],
-        format_func=lambda x: "Старшина" if x == 0 else "Рядовий",
+        format_func=lambda x: "Старшина" if x == 0 else "Стандартний тариф",
         horizontal=True,
     )
 
-    payment_df = calculate_translation_payment(pages, redacted_percentage, rank)
+    payment_df = calculate_translation_payment(total_characters, rank)
     st.dataframe(payment_df, hide_index=True)
 
-    payment_df = calculate_editor_payment(pages, redacted_percentage)
+    payment_df = calculate_editor_payment(total_characters, redacted_percentage)
     st.dataframe(payment_df, hide_index=True)
